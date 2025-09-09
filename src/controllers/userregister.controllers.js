@@ -12,7 +12,6 @@ const authregister = asynchandler(async (req, res) => {
       throw new Apierror(400, "Please enter all the required fields");
     }
 
-    // check duplicate authority
     let user = await User.findOne({
       "authorities.officialEmail": officialEmail
     });
@@ -21,7 +20,6 @@ const authregister = asynchandler(async (req, res) => {
       throw new Apierror(400, "Authority already registered");
     }
 
-    // create new root user document if empty
     let rootUser = await User.findOne();
     if (!rootUser) {
       rootUser = new User({ citizens: [], authorities: [] });
@@ -53,7 +51,7 @@ const citizenregister = asynchandler(async (req, res) => {
       throw new Apierror(400, "Please enter all the required fields");
     }
 
-    // check duplicate citizen
+    
     let user = await User.findOne({
       "citizens.email": email
     });
@@ -182,7 +180,7 @@ const loginauth = asynchandler(async(req,res)=>{
       authority: {
         _id: authority._id,
         name: authority.name,
-        email: authority.OfficialEmail,
+        email: authority.officialEmail,
         gender: authority.gender,
       },
       accessToken,
