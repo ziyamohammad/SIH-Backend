@@ -119,8 +119,8 @@ const citizenregister = asynchandler(async (req, res) => {
   
   const options = {
     httpOnly: true,
-    secure: false,
-    sameSite: "lax",
+    secure: true,
+    sameSite: "None",
   };
 
   return res
@@ -167,8 +167,8 @@ const loginauth = asynchandler(async(req,res)=>{
   
   const options = {
     httpOnly: true,
-    secure: false,
-    sameSite: "lax",
+    secure: true,
+    sameSite: "None",
   };
 
   return res

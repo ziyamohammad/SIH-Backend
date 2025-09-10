@@ -6,13 +6,14 @@ const app = express();
 
 
 app.use(cors({
-    origin:"http://localhost:3000",
+    origin:"https://sih-frontend-two.vercel.app",
     credentials:true
 }))
 app.use(express.json({limit:"16kb"}))
 app.use(express.urlencoded({extended:"true",limit:"16kb"}))
 app.use(express.static("public"))
 app.use(cookieParser())
+app.set("trust proxy", 1);
 
 import {router} from './routes/user.routes.js'
 
