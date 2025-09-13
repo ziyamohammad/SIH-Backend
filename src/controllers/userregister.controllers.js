@@ -1,7 +1,12 @@
-import mongoose from 'mongoose';
+
 import { asynchandler } from '../utils/Asynchandler.js';
 import { Apierror } from '../utils/Apierror.js';
 import User from '../models/users.models.js';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+import fs from "fs";
+import { Apiresponse } from '../utils/Apiresponse.js';
+
+import { uploadcloudinary } from '../utils/cloudinary.js';
 
 
 const authregister = asynchandler(async (req, res) => {
@@ -190,4 +195,48 @@ const loginauth = asynchandler(async(req,res)=>{
 
 })
 
-export {authregister,citizenregister ,logincitizen,loginauth}
+const geminiapi = asynchandler(async (req, res) => {
+  const { message } = req.body;
+  if (!message) {
+    throw new Apierror(400, "Please enter a valid message");
+  }
+
+  const imagepath = req.files?.reportImage?.[0]?.path;
+  if (!imagepath) {
+    throw new Apierror(400, "Please upload image");
+  }
+
+
+  const imageBase64 = fs.readFileSync(imagepath).toString("base64");
+
+  const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model = ai.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+  const response = await model.generateContent({
+    contents: [
+      {
+        role: "user",
+        parts: [
+          { text: message },
+          {
+            inline_data: {
+              mime_type: "image/png", // or jpeg depending on upload
+              data: imageBase64,
+            },
+          },
+        ],
+      },
+    ],
+  });
+
+  res.status(200).json(
+    new Apiresponse(
+      200,
+      response.response.text(),
+      "Api fetched successfully"
+    )
+  );
+});
+
+
+export {authregister,citizenregister ,logincitizen,loginauth ,geminiapi}
