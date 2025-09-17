@@ -5,9 +5,14 @@ import User from '../models/users.models.js';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import fs from "fs";
 import { Apiresponse } from '../utils/Apiresponse.js';
+import nodemailer from "nodemailer"
 
 import { uploadcloudinary } from '../utils/cloudinary.js';
 
+
+function generateotp() {
+  return Math.floor(1000 + Math.random() * 9000).toString();
+}
 
 const authregister = asynchandler(async (req, res) => {
   try {
@@ -238,5 +243,116 @@ const geminiapi = asynchandler(async (req, res) => {
   );
 });
 
+const sendemail = asynchandler(async (req, res) => {
+  const { gmail, name, message } = req.body;
 
-export {authregister,citizenregister ,logincitizen,loginauth ,geminiapi}
+  if (!gmail || !name || !message) {
+    throw new Apierror(400, "All fields are required");
+  }
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: {
+      user: process.env.USER,
+      pass: process.env.PASS,
+    },
+  });
+
+  const mailoptions = {
+    from: `"${name}" <${gmail}>`,  
+    to: process.env.USER,
+    subject: "QUERY MAIL",
+    text: message,                 
+  };
+
+  transporter.sendMail(mailoptions, (error, info) => {
+    if (error) {
+      console.error("Email send error:", error);
+      return res.status(400).json(new Apierror(400, "Mail not sent"));
+    } else {
+      return res
+        .status(200)
+        .json(new Apiresponse(200, "Email sent successfully", info));
+    }
+  });
+});
+
+const authreport = asynchandler(async (req, res) => {
+  const { id } = req.body;
+
+  if (!id) {
+    throw new Apierror(400, "Please fill all the required details");
+  }
+
+  const authdoc = await User.findOne({ "authorities._id": id });
+  if (!authdoc) {
+    throw new Apierror(404, "Authority not found");
+  }
+
+  const authority = authdoc.authorities.find((a) => a._id.toString() === id);
+  if (!authority) {
+    throw new Apierror(404, "Authority not found");
+  }
+
+  const otp = generateotp();
+
+  req.session.otp = otp;
+  req.session.otpExpiry = Date.now() + 5 * 60 * 1000;
+  req.session.authorityId = id;
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    host: "smtp.gmail.com",
+    port: 465,
+    secure: true,
+    auth: {
+      user: process.env.USER,
+      pass: process.env.PASS,
+    },
+  });
+
+  const mailoptions = {
+    to: authority.officialEmail,
+    from: process.env.USER,
+    subject: "Samudram Authority Verification",
+    text: `Your OTP for authority verification is ${otp}. It is valid for 5 minutes.`,
+  };
+
+  transporter.sendMail(mailoptions, (error, info) => {
+    if (error) {
+      console.error("Email send error:", error);
+      return res.status(400).json(new Apierror(400, "Mail not sent"));
+    } else {
+      return res
+        .status(200)
+        .json(new Apiresponse(200, "OTP sent successfully", info));
+    }
+  });
+});
+
+const verifyotp = asynchandler(async(req,res)=>{
+  const {otp} = req.body
+
+  if(!otp){
+    throw new Apierror(404,"otp not found")
+  }
+
+  const verify = otp === req.session?.otp
+  if(verify){
+    res
+    .status(200)
+    .json(new Apiresponse(200,"OTP verified successfully"))
+  }
+  else{
+    res.status(300).json(new Apierror(500,"Bad request"))
+  }
+})
+
+
+
+
+
+export {authregister,citizenregister ,logincitizen,loginauth ,geminiapi ,sendemail,authreport , verifyotp}

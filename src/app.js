@@ -15,9 +15,22 @@ app.use(express.static("public"))
 app.use(cookieParser())
 app.set("trust proxy", 1);
 
+
+
 import {router} from './routes/user.routes.js'
+import session from "express-session";
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || "samudram_secret_key",
+    resave: false,
+    saveUninitialized: true,
+    cookie: { maxAge: 5 * 60 * 1000 }, 
+  })
+);
 
 app.use("/api/v1/user",router);
+
 
 
 export {app}
