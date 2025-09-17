@@ -25,7 +25,12 @@ app.use(
     secret: process.env.SESSION_SECRET || "samudram_secret_key",
     resave: false,
     saveUninitialized: true,
-    cookie: { maxAge: 5 * 60 * 1000 }, 
+    cookie: { 
+      httpOnly:true,
+      secure:true,
+      sameSite:"None",
+      maxAge: 5 * 60 * 1000
+     }, 
   })
 );
 
