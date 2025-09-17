@@ -333,24 +333,38 @@ const authreport = asynchandler(async (req, res) => {
   });
 });
 
-const verifyotp = asynchandler(async(req,res)=>{
-  const {otp} = req.body
+const verifyotp = asynchandler(async (req, res) => {
+  const { otp } = req.body;
 
-  if(!otp){
-    throw new Apierror(404,"otp not found")
+  if (!otp) {
+    throw new Apierror(400, "OTP is required");
   }
 
-  const verify = otp === req.session?.otp
-  if(verify){
-    res
-    .status(200)
-    .json(new Apiresponse(200,"OTP verified successfully"))
+  // Check if OTP exists in session
+  if (!req.session?.otp || !req.session?.otpExpiry) {
+    throw new Apierror(400, "No OTP session found");
   }
-  else{
-    res.status(300).json(new Apierror(500,"Bad request"))
-  }
-})
 
+  // Check expiry
+  if (Date.now() > req.session.otpExpiry) {
+    // Clear OTP
+    req.session.otp = null;
+    req.session.otpExpiry = null;
+    throw new Apierror(401, "OTP expired");
+  }
+
+  // Check OTP match
+  if (otp === req.session.otp) {
+    // OTP verified → clear it
+    req.session.otp = null;
+    req.session.otpExpiry = null;
+    return res
+      .status(200)
+      .json(new Apiresponse(200, "OTP verified successfully"));
+  } else {
+    throw new Apierror(400, "Invalid OTP");
+  }
+});
 
 
 
